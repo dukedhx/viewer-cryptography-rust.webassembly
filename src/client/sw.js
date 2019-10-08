@@ -1,4 +1,4 @@
-/////////////////////////////////////////////////////////////////////
+/// //////////////////////////////////////////////////////////////////
 // Copyright (c) Autodesk, Inc. All rights reserved
 // Written by Forge Partner Development
 //
@@ -14,13 +14,14 @@
 // MERCHANTABILITY OR FITNESS FOR A PARTICULAR USE.  AUTODESK, INC.
 // DOES NOT WARRANT THAT THE OPERATION OF THE PROGRAM WILL BE
 // UNINTERRUPTED OR ERROR FREE.
-/////////////////////////////////////////////////////////////////////
+/// //////////////////////////////////////////////////////////////////
+let clientReady = false
 
 importScripts(`/${wasm_package_name}.js`)
 
 WebAssembly.compileStreaming(fetch(`/${wasm_package_name}_bg.wasm`)).then(mod => WebAssembly.instantiate(mod, { imports: {} }).then(instance => {
   self.wasm = instance.exports
-  self.clients.matchAll().then(clients => clients[0].postMessage('tryinitViewer'))
+  tryinitViewer()
 }))
 
 self.addEventListener('install', event => {
@@ -36,7 +37,7 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   event.respondWith(
     async function () {
-      if (/http\:\/\/(\w|\:)+\/models/.test(event.request.url)) {
+      if (/http\:\/\/(\w|\:)+\/(models|proxy)/.test(event.request.url)) {
         const response = await fetch(event.request)
         if (response.status != 200) return response
         const reader = response.body.getReader()
@@ -63,3 +64,12 @@ self.addEventListener('fetch', event => {
       } else { return fetch(event.request) }
     }())
 })
+
+self.onmessage = function (e) {
+  clientReady = true
+  self[e.data]()
+}
+
+self.tryinitViewer = function () {
+  if (clientReady && self.wasm) { self.clients.matchAll().then(clients => clients[0].postMessage('tryinitViewer')) }
+}

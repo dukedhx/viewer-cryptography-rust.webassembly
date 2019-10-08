@@ -1,4 +1,4 @@
-/////////////////////////////////////////////////////////////////////
+/// //////////////////////////////////////////////////////////////////
 // Copyright (c) Autodesk, Inc. All rights reserved
 // Written by Forge Partner Development
 //
@@ -14,11 +14,12 @@
 // MERCHANTABILITY OR FITNESS FOR A PARTICULAR USE.  AUTODESK, INC.
 // DOES NOT WARRANT THAT THE OPERATION OF THE PROGRAM WILL BE
 // UNINTERRUPTED OR ERROR FREE.
-/////////////////////////////////////////////////////////////////////
+/// //////////////////////////////////////////////////////////////////
 
 import runtime from 'serviceworker-webpack-plugin/lib/runtime'
 let readyToInitViewer = false
 let viewer
+let loadOptions
 
 const container = document.createElement('DIV')
 document.body.append(container)
@@ -27,9 +28,12 @@ document.body.append(document.createTextNode('Loading ...'))
 if ('serviceWorker' in navigator) {
   const registration = runtime.register()
 
-  navigator.serviceWorker.ready.then(() => navigator.serviceWorker.onmessage = e => { if (e.data == 'tryinitViewer')tryinitViewer() })
+  navigator.serviceWorker.ready.then(() => {
+    navigator.serviceWorker.onmessage = e => { if (e.data == 'tryinitViewer')tryinitViewer() }
+    setTimeout(() => navigator.serviceWorker.controller.postMessage('tryinitViewer'), 500)
+  })
 
-  Promise.all([new Promise(res => {
+  Promise.all([fetch('/config').then(res => res.json().then(obj => loadOptions = obj)), new Promise(res => {
     const link = document.createElement('link')
     link.rel = 'stylesheet'
     link.type = 'text/css'
@@ -43,13 +47,23 @@ if ('serviceWorker' in navigator) {
     document.head.append(script)
   })]).then(() => {
     viewer = new Autodesk.Viewing.GuiViewer3D(container)
-    Autodesk.Viewing.Initializer({ env: 'Local' }, () => tryinitViewer())
+    Autodesk.Viewing.Initializer(loadOptions, () => {
+      Autodesk.Viewing.endpoint.setEndpointAndApi(`${window.location.origin}/proxy`, 'derivativeV2')
+      tryinitViewer()
+    })
   })
 } else alert('Service Worker support is not available for this browser!')
 
-function initViewer () { viewer.start(svf_path) }
+function initViewer () {
+  if (loadOptions.urn) {
+    Autodesk.Viewing.Document.load('urn:' + loadOptions.urn, doc => {
+      viewer.start()
+      viewer.loadDocumentNode(doc, doc.getRoot().getDefaultGeometry())
+    })
+  } else viewer.start(loadOptions['svf_path'] || svf_path)
+}
+
 function tryinitViewer () {
-  console.log(233)
   if (readyToInitViewer) initViewer()
   else readyToInitViewer = true
 }
