@@ -1,0 +1,10 @@
+node_modules
+.DS_Store
+logs
+src/index.js
+src/sb
+src/wasm/pkg
+src/wasm/target
+/public
+config
+pkg
