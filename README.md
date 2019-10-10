@@ -30,9 +30,21 @@ See details in the accompanying blog article here: https://forge.autodesk.com/bl
 
 - `npm install` //run once to install dependencies
 
-- Put the translated model files (SVF) to `src/client/public/models` or `public/models` - you can translate and download the model files on extractor.io or use sample files (all files in the directory required) [here](https://github.com/dukedhx/viewer-javascript-offline.sample/tree/gh-pages/shaver)
+- OPTION: Load Local Files
 
-- `export (or set for Windows) svf_path=path/to/`  //or replace the variable in `src/client/index.js` with relative path to the SVF e.g. `model/office/0.svf`
+    - Put the translated model files (SVF) to `src/client/public/models` or `public/models` - you can translate and download the model files on extractor.io or use sample files (all files in the directory required) [here](https://github.com/dukedhx/viewer-javascript-offline.sample/tree/gh-pages/shaver)
+
+    - `export (or set for Windows) svf_path=path/to/`  //or replace the variable in `src/client/index.js` with relative path to the SVF e.g. `model/office/0.svf`
+
+- OPTION: Load from Forge Derivative Service(OSS Buckets)
+
+    - Translate the model and take note of its URN following [here](https://forge.autodesk.com/en/docs/model-derivative/v2/tutorials/prepare-file-for-viewer/)
+
+    - `export FORGE_CLIENT_ID=<your Forge APP ID>`
+
+    - `export FORGE_CLIENT_SECRET=<your Forge APP SECRET>`
+
+    - `export urn=<your model's URN>`
 
 - `npm run build`  //run once to build the app
 
@@ -81,7 +93,7 @@ While it is conceivable that one day people will be writing the latest 3D video 
 
 Rust is our language of choice to implement the client side cipher because WebaAssembly is among its default compilation targets and we get to benefit from its memory features, sleek syntax and impressive ecosystem with powerful tools like cargo and wasm-pack.
 
-Server Side Encryption - Node.js Crpto
+### Server Side Encryption - Node.js Crpto
 
 In our backend we are using the crypto module of the Node.js standard library to create a stream cypher to encrypt on the fly files under the model folders as we serve them - just so the model files themselves can be stored as is w/o physical encryption, giving us the flexibility to change salt, keys and even the encryption algorithm when we want to and keep the files directly accessible internally to other modules or apps all the while. To do this our route handler looks like:
 
@@ -97,6 +109,23 @@ In our backend we are using the crypto module of the Node.js standard library to
       const  cipher = crypto.createCipheriv('aes-192-ctr', key, Buffer.alloc(16, 0));
       return h.response(fs.createReadStream(filepath).pipe(cipher))
     }});
+```
+
+And let's also set up a route to proxy requests to Forge endpoints and inject OAuth tokens into the outbound requests so the tokens stay behind the backend at all times - similar to local model files we apply a cipher to encrypt the proxy response, supposing traffic between Forge and your backend is secure doing so reduces the attack surface drastically:
+```
+server.route({
+    method: 'GET',
+    path: '/proxy/{path*}',
+    handler: { proxy: {
+      mapUri: request => ({
+        headers: { Authorization: 'Bearer ' + token },
+        uri: 'https:///developer.api.autodesk.com/' + request.params.path }),
+      onResponse: function (err, res, request, h, settings, ttl) {
+        const cipher = crypto.createCipheriv('aes-192-ctr', key, Buffer.alloc(16, 0))
+        return h.response(res.pipe(cipher))
+      }
+    } }
+  })
 ```
 
 ### Client Side Decryption - Rust WASM

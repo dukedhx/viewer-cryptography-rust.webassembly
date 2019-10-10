@@ -33,7 +33,10 @@ if ('serviceWorker' in navigator) {
     setTimeout(() => navigator.serviceWorker.controller.postMessage('tryinitViewer'), 500)
   })
 
-  Promise.all([fetch('/config').then(res => res.json().then(obj => loadOptions = obj)), new Promise(res => {
+  Promise.all([new Promise(resolve=>fetch('/config').then(res => res.json().then(obj => {
+    loadOptions = obj
+    resolve()
+  }))), new Promise(res => {
     const link = document.createElement('link')
     link.rel = 'stylesheet'
     link.type = 'text/css'
