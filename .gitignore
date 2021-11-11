@@ -8,3 +8,5 @@ src/wasm/target
 /public
 config
 pkg
+.env.*
+.env

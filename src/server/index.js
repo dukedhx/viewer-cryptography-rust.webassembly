@@ -23,6 +23,7 @@ const fs = require('fs')
 const path = require('path')
 const qs = require('qs')
 const crypto = require('crypto')
+require('dotenv').config()
 
 const key = Buffer.from('6b65796b65796b65796b65796b65796b65796b65796b6579', 'hex').toString('utf8')
 let token
@@ -76,7 +77,8 @@ process.on('unhandledRejection', (err) => {
         return { env: 'AutodeskProduction', accessToken: '233', urn: process.env.urn }
       }
       return { env: 'Local', svf_path: process.env.svf_path }
-    } })
+    }
+  })
 
   server.route({
     method: 'GET',
