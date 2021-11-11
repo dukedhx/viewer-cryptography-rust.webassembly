@@ -37,7 +37,7 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   event.respondWith(
     async function () {
-      if (/http\:\/\/(\w|\:)+\/(models|proxy)/.test(event.request.url)) {
+      if (/http(s)?\:\/\/.+\/(models|proxy)/.test(event.request.url)) {
         const response = await fetch(event.request)
         if (response.status != 200) return response
         const reader = response.body.getReader()
