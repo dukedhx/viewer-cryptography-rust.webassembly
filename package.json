@@ -18,7 +18,7 @@
     "axios": "^0.24.0",
     "dotenv": "^10.0.0",
     "hapi-error": "^2.3.0",
-    "qs": "^6.10.1"
+    "qs": "^6.10.3"
   },
   "devDependencies": {
     "@wasm-tool/wasm-pack-plugin": "^1.0.1",
